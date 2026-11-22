@@ -21,12 +21,16 @@
 %%   * a box in the lower part of the outer box;
 %%   * a breakable box in a minipage and in an unbreakable box: these
 %%     do not flow;
-%%   * boxes in an outer box that is not broken, one with a lower part.
+%%   * boxes in an outer box that is not broken, one with a lower part;
+%%   * boxes with a lower part that are broken in the upper part and
+%%     in the lower part, one of the bicolor skin and with a text color
+%%     of the lower part.
 %%
 %% What to check:
 %%   * TNB-RESULT OK, and no error, warning or overfull box;
 %%   * in the PDF, the frames are behind their text and open where the
-%%     outer box is broken.
+%%     outer box is broken; the segmentation line is between the upper
+%%     and the lower part.
 \ifdefined\CLS\else\def\CLS{article}\fi
 \ifdefined\ptexversion\def\CLSOPT{dvipdfmx}\else\def\CLSOPT{}\fi
 \expandafter\documentclass\expandafter[\CLSOPT]{\CLS}
@@ -125,5 +129,23 @@ The lower part.
 \end{tcolorbox}
 \end{tcolorbox}
 
-\TNBexpect{10}{6}
+\begin{tcolorbox}[breakable, title=Outer box 4]
+\TNBfiller{8}
+\begin{tcolorbox}[breakable, colback=yellow!20, title=Box 11,
+  collower=blue!60!black]
+The upper part. \TNBfiller{120}
+\tcblower
+The lower part, with blue text. \TNBfiller{8}
+\end{tcolorbox}
+\TNBfiller{8}
+\begin{tcolorbox}[breakable, bicolor, colback=red!10, colbacklower=cyan!15,
+  title=Box 12, collower=red!60!black]
+The upper part. \TNBfiller{8}
+\tcblower
+The lower part, with red text. \TNBfiller{120}
+\end{tcolorbox}
+\TNBfiller{8}
+\end{tcolorbox}
+
+\TNBexpect{12}{8}
 \end{document}

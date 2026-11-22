@@ -11,14 +11,17 @@
 %%   * footnotes of the outer box before, between and after the boxes
 %%     inside: each is on the page of its mark;
 %%   * a box inside with "page footnote": its footnotes are page
-%%     footnotes, put where the box ends;
+%%     footnotes, each on the page of its mark;
+%%   * a box with "page footnote" inside that box, three levels deep,
+%%     with a footnote in its title;
 %%   * a box inside without the key: its footnote is a footnote of the
 %%     box.
 %%
 %% What to check:
-%%   * TNB-RESULT OK, and no error, warning or overfull box;
+%%   * TNB-RESULT OK (with TNB-NOTE OK for the page footnotes), and no
+%%     error, warning or overfull box;
 %%   * no "% split" (of \tracingpages) in the log;
-%%   * the PDF has the seven footnote texts ("Footnote text <n>.").
+%%   * the PDF has the ten footnote texts ("Footnote text <n>.").
 \ifdefined\CLS\else\def\CLS{article}\fi
 \ifdefined\ptexversion\def\CLSOPT{dvipdfmx}\else\def\CLSOPT{}\fi
 \expandafter\documentclass\expandafter[\CLSOPT]{\CLS}
@@ -32,18 +35,24 @@
 \TNBfiller{20}
 
 \begin{tcolorbox}[breakable, page footnote, title=Outer box]
-Outer\footnote{Footnote text 1.}. \TNBfiller{10}
+Outer\TNBfootnote{Footnote text 1.}. \TNBfiller{10}
 \begin{tcolorbox}[breakable, page footnote, colback=yellow!20, title=Box 1]
-Inner\footnote{Footnote text 2.}. \TNBfiller{50}
-Inner\footnote{Footnote text 3.}. \TNBfiller{50}
-Inner\footnote{Footnote text 4.}. \TNBfiller{10}
+Inner\TNBfootnote{Footnote text 2.}. \TNBfiller{50}
+Inner\TNBfootnote{Footnote text 3.}. \TNBfiller{20}
+\begin{tcolorbox}[breakable, page footnote, colback=red!10,
+  title={Box 2 in box 1\TNBfootnote{Footnote text 4.}}]
+Inner\TNBfootnote{Footnote text 5.}. \TNBfiller{60}
+Inner\TNBfootnote{Footnote text 6.}. \TNBfiller{10}
 \end{tcolorbox}
-Outer\footnote{Footnote text 5.}. \TNBfiller{60}
-\begin{tcolorbox}[breakable, colback=green!10, title=Box 2]
-Inner\footnote{Footnote text 6.}. \TNBfiller{80}
+\TNBfiller{20}
+Inner\TNBfootnote{Footnote text 7.}. \TNBfiller{10}
 \end{tcolorbox}
-Outer\footnote{Footnote text 7.}.
+Outer\TNBfootnote{Footnote text 8.}. \TNBfiller{60}
+\begin{tcolorbox}[breakable, colback=green!10, title=Box 3]
+Inner\footnote{Footnote text 9.}. \TNBfiller{80}
+\end{tcolorbox}
+Outer\TNBfootnote{Footnote text 10.}.
 \end{tcolorbox}
 
-\TNBexpect{2}{2}
+\TNBexpect{3}{3}
 \end{document}

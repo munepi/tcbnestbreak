@@ -1,0 +1,44 @@
+# ctan.toml -- metadata for "ctango upload".
+# Keys follow the CTAN submission API: https://ctan.org/help/submit
+# uploader/email are taken from ~/.config/ctango/config.toml or git config.
+
+pkg         = "tcbnestbreak"
+ctanPath    = "/macros/latex/contrib/tcbnestbreak"
+summary     = "Breakable tcolorboxes inside breakable tcolorboxes"
+description = '''
+<p>
+tcolorbox typesets the content of a breakable box as one box and
+splits it into the parts for the pages.  A box inside cannot be split,
+so tcolorbox ignores <code>breakable</code> for a box inside another
+box.  With this package, <code>breakable</code> works for a box inside
+a breakable box, to any depth: the inner box is broken across pages
+together with the outer box, and its frame is open where the outer box
+is broken.
+</p>
+<p>
+The inner box can have a title and a lower part.  No new key is
+needed, the boxes are broken in one run, and no Lua code is used.
+With the tcbpagefootnote package (v1.4 or later), the footnotes of
+the boxes inside are put on the pages of their marks.
+</p>
+<p>
+Supported formats/engines: <code>pdflatex</code>, <code>xelatex</code>,
+<code>lualatex</code>, <code>platex</code>, <code>uplatex</code>
+(with <code>dvipdfmx</code>), in horizontal and vertical writing.
+</p>
+'''
+author      = ["Munehiro Yamamoto"]
+license     = ["lppl1.3c"]
+topic       = ["boxing"]
+# home        = "https://..."
+# bugtracker  = ["https://..."]
+# support     = "https://..."
+# repository  = ["https://..."]
+# development = "https://..."
+
+archive     = "tcbnestbreak.zip"  # built by "make ctanzip"
+
+# The version is read from this file (\ProvidesPackage / \ProvidesExplPackage).
+# Add pattern = '...' to use your own regular expression (first group = version).
+[version]
+file        = "tcbnestbreak.sty"

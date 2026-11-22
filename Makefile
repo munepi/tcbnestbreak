@@ -1,32 +1,43 @@
 TNBVER := $(shell awk '/ProvidesExplPackage\{tcbnestbreak\}/{getline; split($$0, a, "[{}]"); print a[4]}' tcbnestbreak.sty)
 
+DOCS := tcbnestbreak.pdf
+
 ## The tcbpagefootnote package (v1.4 or later) for test-footnote.tex;
 ## the test is skipped if it is not there.
 TPF ?= ../tcbpagefootnote
 
 .PHONY: ctanzip
 ctanzip: tcbnestbreak.zip ## Archive for CTAN upload
-tcbnestbreak.zip: clean
+tcbnestbreak.zip: clean $(DOCS)
 	git archive --format=tar --prefix=tcbnestbreak/ HEAD | gtar -x
 	## remove unpacked files
 	cd tcbnestbreak/ && \
-		rm -f .gitignore Makefile
+		rm -f .gitignore Makefile ctan.toml
 	## then, now just make archive
 	zip -9 -r tcbnestbreak.zip tcbnestbreak/*
 	rm -rf tcbnestbreak
 	@echo finished
 
+.PHONY: tcbnestbreak.pdf
+tcbnestbreak.pdf: tcbnestbreak.tex tcbnestbreak.sty
+	pdflatex -interaction=nonstopmode -halt-on-error $<
+	pdflatex -interaction=nonstopmode -halt-on-error $<
+
 ## Run the test suite ($(TNBVER)):
 ##  * every test compiles without errors and without an overfull page
 ##  * TESTS: TNB-RESULT OK and no TNB-* NG: every box that flows has
 ##    its frames (unbroken, or first, middle, ..., last) on pages that
-##    follow each other, and the frames are as high as what has flowed
-##    (see test-common.tex)
+##    follow each other, with the segmentation in one of them if the
+##    box has a lower part, and the frames are as high as what has
+##    flowed (see test-common.tex)
+##  * test-tate-*: vertical writing (tarticle, utarticle, ltjtarticle);
+##    the same checks as in yoko
 ##  * PLAIN: test-plain.tex gives the same text (pdftotext -layout)
 ##    with and without tcbnestbreak
 ##  * FOOTNOTE (with tcbpagefootnote in $(TPF)): the same as TESTS, no
-##    split footnote ("% split" of \tracingpages), and the seven
-##    footnote texts are in the PDF
+##    split footnote ("% split" of \tracingpages), the page footnotes
+##    are on the pages of their marks (TNB-NOTE), and the ten footnote
+##    texts are in the PDF
 ## A test is "<engine>:<jobname>:<input>".  The output of the engine and
 ## of (x)dvipdfmx is kept in <jobname>.term.
 TESTS := \
@@ -37,7 +48,10 @@ TESTS := \
   platex:test-basic-platex:'\def\CLS{jarticle}\input test-basic' \
   platex:test-basic-jsarticle-platex:'\def\CLS{jsarticle}\input test-basic' \
   uplatex:test-basic-uplatex:'\def\CLS{ujarticle}\input test-basic' \
-  pdflatex:test-twocolumn-pdflatex:'\PassOptionsToClass{twocolumn}{article}\input test-basic'
+  pdflatex:test-twocolumn-pdflatex:'\PassOptionsToClass{twocolumn}{article}\input test-basic' \
+  platex:test-tate-platex:'\input test-tate' \
+  uplatex:test-tate-uplatex:'\def\CLS{utarticle}\input test-tate' \
+  lualatex:test-tate-lualatex:'\input test-tate'
 
 PLAIN := \
   pdflatex:test-plain-pdflatex:'\input test-plain' \
@@ -49,7 +63,9 @@ FOOTNOTE := \
   xelatex:test-footnote-xelatex:'\input test-footnote' \
   lualatex:test-footnote-lualatex:'\input test-footnote' \
   platex:test-footnote-platex:'\def\CLS{jarticle}\input test-footnote' \
-  uplatex:test-footnote-uplatex:'\def\CLS{ujarticle}\input test-footnote'
+  uplatex:test-footnote-uplatex:'\def\CLS{ujarticle}\input test-footnote' \
+  platex:test-tate-footnote-platex:'\def\TNBfile{test-footnote}\input test-tate' \
+  lualatex:test-tate-footnote-lualatex:'\def\TNBfile{test-footnote}\input test-tate'
 
 ## Compile $$in with $$eng as $$job once (+ (x)dvipdfmx), and check
 ## for errors and overfull pages
@@ -95,8 +111,8 @@ test:
 	    $(RUN); \
 	    $(RESULT); \
 	    if grep '^% split' $$job.log; then echo "NG: split footnote in $$job.log"; exit 1; fi; \
-	    n=`pdftotext $$job.pdf - | grep -c 'Footnote text [1-7]\.' || true`; \
-	    [ $$n -eq 7 ] || { echo "NG: $$n footnote texts in $$job.pdf, want 7"; exit 1; }; \
+	    n=`pdftotext $$job.pdf - | grep -c 'Footnote text [0-9]*\.' || true`; \
+	    [ $$n -eq 10 ] || { echo "NG: $$n footnote texts in $$job.pdf, want 10"; exit 1; }; \
 	  done; \
 	else \
 	  echo "== test-footnote skipped: no $(TPF)/tcbpagefootnote.sty"; \

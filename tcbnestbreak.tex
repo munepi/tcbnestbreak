@@ -1,0 +1,221 @@
+%% tcbnestbreak.tex -- documentation for the tcbnestbreak package
+%%
+%% Copyright (c) 2026 Munehiro Yamamoto <munepixyz@gmail.com>
+%% License: LPPL 1.3c or later
+%%
+%% Build: pdflatex tcbnestbreak.tex (twice)
+\documentclass{article}
+\usepackage[margin=28mm]{geometry}
+\usepackage{xcolor}
+\usepackage{tcbnestbreak}
+\usepackage[colorlinks, allcolors=blue!50!black]{hyperref}
+\newcommand*\tnbversion{v0.2 (2026/11/22)}
+\newcommand*\cs[1]{\texttt{\char`\\#1}}
+\newcommand*\pkg[1]{\textsf{#1}}
+\newcommand*\key[1]{\texttt{#1}}
+\newcommand*\meta[1]{$\langle$\textit{#1}$\rangle$}
+\tcbset{colframe=black!60, colback=black!3, fonttitle=\bfseries}
+\emergencystretch=2em
+%% \filler{<n>}: <n> filler sentences
+\makeatletter
+\newcommand\filler[1]{%
+  \count@=0
+  \loop\advance\count@ by 1
+    This sentence only fills the box, so that the box is long enough to
+    be broken.
+  \ifnum\count@<#1 \repeat}
+\makeatother
+
+\title{The \pkg{tcbnestbreak} package\\
+  \large Breakable tcolorboxes inside breakable tcolorboxes}
+\author{Munehiro Yamamoto}
+\date{\tnbversion}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+\pkg{tcolorbox} typesets the content of a \key{breakable} box as one
+box and splits it into the parts for the pages.  A box inside is one
+picture in this content and cannot be split, so \pkg{tcolorbox}
+ignores \key{breakable} for a box inside another box: a long box
+inside a breakable box sticks out of the page, or leaves a large gap
+before it.
+
+With the \pkg{tcbnestbreak} package, \key{breakable} works for a box
+inside a breakable box, and for a box inside such a box, to any depth.
+The box below is a breakable box with a breakable box inside, which
+has a lower part and a breakable box of its own.
+
+\begin{tcolorbox}[breakable, title=A breakable box]
+The outer box starts here.  \filler{3}
+
+\begin{tcolorbox}[breakable, colback=yellow!15, colframe=blue!50!black,
+  title=A breakable box inside]
+The inner box starts here.  \filler{6}
+\begin{tcolorbox}[breakable, colback=red!8, colframe=red!50!black,
+  title=A breakable box inside the inner box]
+The innermost box starts here.  \filler{10}
+The innermost box ends here.
+\end{tcolorbox}
+\filler{4}
+\tcblower
+The lower part of the inner box starts here.  \filler{6}
+The inner box ends here.
+\end{tcolorbox}
+
+\filler{3}  The outer box ends here.
+\end{tcolorbox}
+
+\noindent
+Where the outer box is broken, the frame of a box inside is open and
+goes on into the padding of the outer box, so that it is seen to
+continue on the next page.
+
+\paragraph{Supported formats/engines}
+pdf\LaTeX, Xe\LaTeX, Lua\LaTeX{} (with or without Lua\TeX-ja),
+p\LaTeX{} and up\LaTeX{} (with dvipdfmx); horizontal (yoko) and
+vertical (tate) writing.  The boxes are broken in one run, and no Lua
+code is used.  The package requires \pkg{tcolorbox} and loads its
+\texttt{breakable} and \texttt{skins} libraries.
+
+\section{Usage}
+
+\begin{verbatim}
+\usepackage{tcbnestbreak}
+
+\begin{tcolorbox}[breakable, title=Outer]
+  ...
+  \begin{tcolorbox}[breakable, title=Inner]
+    ...  % broken across pages together with the outer box
+  \end{tcolorbox}
+  ...
+\end{tcolorbox}
+\end{verbatim}
+
+\noindent
+There is no new key: the package makes \key{breakable} work for a box
+that is at the top level of the content of a breakable box, i.e.\
+between its paragraphs, also inside a list.  Such a box can have a
+title and a lower part (\cs{tcblower}), and it can be defined with
+\cs{newtcolorbox}.  A box in a \texttt{minipage}, a \cs{parbox} or a
+cell of a \texttt{tabular} is not at the top level: it is an ordinary
+unbreakable box, as without the package.
+
+\section{How it works}
+
+\begin{enumerate}
+\item \textbf{The inner box flows.}  Its content is typeset indented,
+  as the content of a list is (with \cs{parshape}), and put line by
+  line into the list of the box around it, with the space of its frame
+  above and below.  A \TeX{} mark
+  (\cs{marks} of a class of its own) is put at its start, at its end
+  and between its upper and its lower part.  \pkg{tcolorbox} then
+  splits the outer box between these lines as usual.
+\item \textbf{The positions are measured.}  Before a part of the outer
+  box is drawn, a copy of the part is taken apart with
+  \verb|\vsplit ... to -1sp|, piece by piece.  The heights of the
+  pieces and of what is discarded between them (\cs{splitdiscards})
+  add up to the position of each mark.
+\item \textbf{The frames are drawn.}  For each inner box in the part,
+  \pkg{tcolorbox} draws the frame with the options of that box and
+  without text: as an unbroken box, or as a first, middle or last part
+  of the height that is needed, with the segmentation line if the part
+  has it.  The frames are put behind the text of the part.
+\end{enumerate}
+The text color of an inner box (\key{coltext}, \key{colupper},
+\key{collower}) is set again at the top of the next part.
+
+\section{With the \pkg{tcbpagefootnote} package}
+
+The \pkg{tcbpagefootnote} package (v1.4 or later) puts the footnotes
+of a box with the key \key{page footnote} at the bottom of the page,
+also for each part of a breakable box.  With \pkg{tcbnestbreak}, this
+holds for the boxes inside as well: if the outer box and a box inside
+have \key{page footnote}, each footnote of the inner box is put on the
+page of its mark.  A box inside without the key keeps its footnotes,
+below its text.
+
+\section{Limitations}
+
+\begin{itemize}
+\item A box flows only at the top level of the content of a breakable
+  box or of a box that flows, and not with \key{float},
+  \key{sidebyside} or \cs{tcbox}.
+\item Where the outer box is broken, the frame of the inner box is
+  always open: a part of a box of the \texttt{standard} skin is drawn
+  with the skins \texttt{enhancedfirst}, \texttt{enhancedmiddle} and
+  \texttt{enhancedlast}, and \key{toprule at break},
+  \key{bottomrule at break}, \key{topsep at break} and
+  \key{bottomsep at break} of the inner box are not used.
+\item The frame is drawn when the part of the outer box is drawn, with
+  the options of the inner box applied again.  Colors or styles that
+  are defined inside the content of the outer box are not known then.
+  \key{height} and the \texttt{enlarge ... by} keys of a box that
+  flows are not used.
+\item The content is indented like the content of a list.  Material
+  that does not follow \cs{parshape} (e.g.\ an \cs{hrule} in vertical
+  mode) is not indented.
+\item The text color of the box is continued after a break; a
+  \cs{color} inside the content is not.
+\item The package uses internal macros of \pkg{tcolorbox} (they are
+  listed at the top of \texttt{tcbnestbreak.sty}); it is tested with
+  \pkg{tcolorbox} 6.10.0.
+\end{itemize}
+
+\section{Tests}
+
+\verb|make test| compiles the test files with pdf\LaTeX, Xe\LaTeX,
+Lua\LaTeX, p\LaTeX{} and up\LaTeX{} (+ dvipdfmx) and checks the log.
+Through the hooks \texttt{tcbnestbreak/flow} and
+\texttt{tcbnestbreak/frame}, \texttt{test-common.tex} records in the
+\texttt{.aux} file what has flowed and every frame that is drawn; when
+the \texttt{.aux} file is read back at \verb|\end{document}|, it
+checks that every box has its frames in the right order, on pages that
+follow each other and with the segmentation in one of them, and that
+the frames together are as high as what has flowed
+(\texttt{TNB-RESULT OK}).
+
+\begin{center}
+\begin{tabular}{ll}
+  \hline
+  Test & What it covers\\
+  \hline
+  \texttt{test-basic.tex}    & boxes inside a box, three levels deep;
+                               titles, lower parts, skins,\\
+                             & text colors, lists; boxes that do not
+                               flow\\
+  \texttt{test-plain.tex}    & documents without a box that flows:
+                               unchanged by the package\\
+  \texttt{test-footnote.tex} & with \pkg{tcbpagefootnote}: the
+                               footnotes are on the pages of their
+                               marks\\
+  \texttt{test-tate.tex}     & \texttt{test-basic.tex} and
+                               \texttt{test-footnote.tex} in tate\\
+                             & (tarticle, utarticle, ltjtarticle)\\
+  \hline
+\end{tabular}
+\end{center}
+
+\section{History}
+
+\begin{description}
+\item[v0.2 (2026/11/22)] A box that flows can have a lower part: the
+  segmentation line is drawn, and the text color of the lower part is
+  continued.  Vertical writing is tested.  With \pkg{tcbpagefootnote},
+  the footnotes of a box inside are put on the pages of their marks.
+\item[v0.1 (2026/11/22)] First version.
+\end{description}
+
+\section{License}
+
+This package is licensed under the conditions of the \LaTeX{} Project
+Public License, either version~1.3c of this license or any later
+version.
+
+\medskip
+\noindent
+Copyright \copyright{} 2026 Munehiro Yamamoto
+
+\end{document}

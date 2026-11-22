@@ -1,0 +1,24 @@
+%% test-tate.tex
+%% =============
+%% Typesetting test in vertical writing (tate): a test file is run with
+%% a tate class.
+%%
+%%   platex  test-tate.tex && dvipdfmx test-tate
+%%   uplatex -jobname=test-tate "\def\CLS{utarticle}\input test-tate"
+%%   lualatex test-tate.tex
+%% The class is tarticle with pTeX and ltjtarticle with LuaTeX by
+%% default; set \CLS for another one.  \TNBfile is the test file
+%% (default: test-basic).
+%% With pLaTeX and upLaTeX, the pxpgftate package is loaded: without
+%% it, TikZ/PGF, and so tcolorbox, draws the boxes sideways in tate.
+%%
+%% What to check:
+%%   * the same as for the test file in yoko.
+\ifdefined\ptexversion
+  \ifdefined\CLS\else\def\CLS{tarticle}\fi
+  \AddToHook{package/tcbnestbreak/after}{\RequirePackage{pxpgftate}}
+\else
+  \ifdefined\CLS\else\def\CLS{ltjtarticle}\fi
+\fi
+\ifdefined\TNBfile\else\def\TNBfile{test-basic}\fi
+\input{\TNBfile}
