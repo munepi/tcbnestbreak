@@ -45,8 +45,8 @@ The text color of an inner box (`coltext`, `colupper`, `collower`) is set again 
 ## Requirements
 
 * `tcolorbox` (the `breakable` and `skins` libraries are loaded by the package)
-* Tested with TeX Live 2026 (LaTeX2e 2026-06-01, tcolorbox 6.10.0). The package uses internal macros of tcolorbox; they are listed at the top of `tcbnestbreak.sty`.
-* For tate with pLaTeX and upLaTeX: `pxpgftate`
+* Tested with TeX Live 2025 (frozen: LaTeX2e 2025-11-01, tcolorbox 6.9.0) and TeX Live 2026 (LaTeX2e 2026-11-01, tcolorbox 6.10.0). The package uses internal macros of tcolorbox; they are listed at the top of `tcbnestbreak.sty`.
+* For tate with pLaTeX and upLaTeX: `pxpgftate` (in TeX Live from 2026 on; with TeX Live 2025, install it from CTAN)
 
 ## Installation
 
@@ -63,7 +63,7 @@ Copy `tcbnestbreak.sty` to your local TeX tree:
 
 ## Testing
 
-`make test` compiles the tests with pdfLaTeX, XeLaTeX, LuaLaTeX, pLaTeX and upLaTeX (+ dvipdfmx), and checks:
+`make test` compiles the tests with pdfLaTeX, XeLaTeX, LuaLaTeX, pLaTeX and upLaTeX (+ dvipdfmx). `make test TEXBIN=<directory of the binaries>` runs them with another TeX Live than the one in `PATH`; `PXPGFTATE=<directory>` (default: `../pxpgftate`) is where pxpgftate is taken from if that TeX Live does not have it. The tests check:
 
 * no error and no overfull page;
 * `TNB-RESULT OK`: every box that flows has its frames (one `unbroken` frame, or a `first` frame, `middle` frames and a `last` frame) on pages that follow each other; a box with a lower part has the segmentation in exactly one frame, with frames of the upper part before it and of the lower part after it; and the frames together are as high as what has flowed (recorded through the hooks `tcbnestbreak/flow` and `tcbnestbreak/frame`; see `test-common.tex`);

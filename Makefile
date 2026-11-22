@@ -2,9 +2,19 @@ TNBVER := $(shell awk '/ProvidesExplPackage\{tcbnestbreak\}/{getline; split($$0,
 
 DOCS := tcbnestbreak.pdf
 
+## The TeX Live to test with: the directory of its binaries, e.g.
+##   make test TEXBIN=/usr/local/texlive/2025/bin/universal-darwin
+## (default: the one in PATH)
+TEXBIN ?=
+
 ## The tcbpagefootnote package (v1.4 or later) for test-footnote.tex;
-## the test is skipped if it is not there.
+## the tests with it are skipped if it is not there.
 TPF ?= ../tcbpagefootnote
+
+## The pxpgftate package for the tests in tate with pLaTeX and upLaTeX,
+## used if the TeX Live does not have it (TeX Live 2025); these tests
+## are skipped if it is in neither place.
+PXPGFTATE ?= ../pxpgftate
 
 .PHONY: ctanzip
 ctanzip: tcbnestbreak.zip ## Archive for CTAN upload
@@ -40,6 +50,10 @@ tcbnestbreak.pdf: tcbnestbreak.tex tcbnestbreak.sty
 ##    texts are in the PDF
 ## A test is "<engine>:<jobname>:<input>".  The output of the engine and
 ## of (x)dvipdfmx is kept in <jobname>.term.
+## $(TPF) and $(PXPGFTATE) are put into TEXINPUTS only for the tests
+## that need them: a directory with files of the same job names (as
+## the tests of tcbpagefootnote have) must not be searched by the
+## other tests.
 TESTS := \
   pdflatex:test-basic-pdflatex:'\input test-basic' \
   xelatex:test-basic-xelatex:'\input test-basic' \
@@ -67,26 +81,48 @@ FOOTNOTE := \
   platex:test-tate-footnote-platex:'\def\TNBfile{test-footnote}\input test-tate' \
   lualatex:test-tate-footnote-lualatex:'\def\TNBfile{test-footnote}\input test-tate'
 
+HASTPF := $(wildcard $(TPF)/tcbpagefootnote.sty)
+
+## Choose the TeX Live, and find pxpgftate: $$pxp is "kpse" if the TeX
+## Live has it, the directory $(PXPGFTATE) if it is there, else empty
+SETUP = \
+  $(if $(TEXBIN),export PATH="$(TEXBIN):$$PATH";) \
+  echo "== `pdflatex --version | head -1`"; \
+  if kpsewhich pxpgftate.sty >/dev/null 2>&1; then pxp=kpse; \
+  elif [ -f $(PXPGFTATE)/pxpgftate.sty ]; then pxp=$(PXPGFTATE); \
+  else pxp=; fi
+
 ## Compile $$in with $$eng as $$job once (+ (x)dvipdfmx), and check
-## for errors and overfull pages
+## for errors and overfull pages.  A test in tate with pTeX is skipped
+## ($$skip) without pxpgftate.
 RUN = \
+  skip=; ti=.; pre=; \
+  case $$job in test-*footnote-*) ti="$$ti:$(TPF)"; pre="LUAINPUTS=$(TPF):$$LUAINPUTS";; esac; \
+  case $$job in test-tate-*platex) \
+    case "$$pxp" in "") skip=1;; kpse) ;; *) ti="$$ti:$$pxp";; esac;; \
+  esac; \
+  if [ -n "$$skip" ]; then echo "   skipped: no pxpgftate.sty"; else \
   rm -f $$job.aux $$job.dvi $$job.xdv; \
   opt=; if [ $$eng = xelatex ]; then opt=-no-pdf; fi; \
-  $$eng $$opt -interaction=nonstopmode -jobname=$$job "$$in" >$$job.term 2>&1 || true; \
+  env TEXINPUTS="$$ti:$$TEXINPUTS" $$pre $$eng $$opt -interaction=nonstopmode -jobname=$$job "$$in" >$$job.term 2>&1 || true; \
   if [ -f $$job.dvi ]; then dvipdfmx $$job.dvi >>$$job.term 2>&1; fi; \
   if [ -f $$job.xdv ]; then xdvipdfmx $$job.xdv >>$$job.term 2>&1; fi; \
   if grep -q '^!' $$job.log; then echo "NG: error in $$job.log"; exit 1; fi; \
-  if grep 'Overfull .vbox' $$job.log; then echo "NG: overfull page in $$job.log"; exit 1; fi
+  if grep 'Overfull .vbox' $$job.log; then echo "NG: overfull page in $$job.log"; exit 1; fi; \
+  fi
 
 ## Check the result of test-common.tex in $$job.log
 RESULT = \
+  if [ -z "$$skip" ]; then \
   if grep -q '^TNB-.* NG' $$job.log; then grep '^TNB-.* NG' $$job.log; exit 1; fi; \
   grep -q '^TNB-RESULT OK' $$job.log || \
-    { echo "NG: no TNB-RESULT OK in $$job.log"; exit 1; }
+    { echo "NG: no TNB-RESULT OK in $$job.log"; exit 1; }; \
+  fi
 
 .PHONY: test
 test:
 	@set -e; \
+	$(SETUP); \
 	for t in $(TESTS); do \
 	  eng=$${t%%:*}; rest=$${t#*:}; job=$${rest%%:*}; in=$${rest#*:}; \
 	  echo "== $$eng $$job"; \
@@ -103,20 +139,18 @@ test:
 	  cmp $$on.txt $$on-off.txt || \
 	    { echo "NG: $$on.pdf differs from $$on-off.pdf"; exit 1; }; \
 	done; \
-	if [ -f $(TPF)/tcbpagefootnote.sty ]; then \
-	  export TEXINPUTS=".:$(TPF):" LUAINPUTS="$(TPF):"; \
-	  for t in $(FOOTNOTE); do \
-	    eng=$${t%%:*}; rest=$${t#*:}; job=$${rest%%:*}; in=$${rest#*:}; \
-	    echo "== $$eng $$job"; \
-	    $(RUN); \
-	    $(RESULT); \
-	    if grep '^% split' $$job.log; then echo "NG: split footnote in $$job.log"; exit 1; fi; \
-	    n=`pdftotext $$job.pdf - | grep -c 'Footnote text [0-9]*\.' || true`; \
-	    [ $$n -eq 10 ] || { echo "NG: $$n footnote texts in $$job.pdf, want 10"; exit 1; }; \
-	  done; \
-	else \
-	  echo "== test-footnote skipped: no $(TPF)/tcbpagefootnote.sty"; \
-	fi; \
+	$(if $(HASTPF),,echo "== test-footnote skipped: no $(TPF)/tcbpagefootnote.sty";) \
+	for t in $(if $(HASTPF),$(FOOTNOTE)); do \
+	  eng=$${t%%:*}; rest=$${t#*:}; job=$${rest%%:*}; in=$${rest#*:}; \
+	  echo "== $$eng $$job"; \
+	  $(RUN); \
+	  $(RESULT); \
+	  if [ -z "$$skip" ]; then \
+	  if grep '^% split' $$job.log; then echo "NG: split footnote in $$job.log"; exit 1; fi; \
+	  n=`pdftotext $$job.pdf - | grep -c 'Footnote text [0-9]*\.' || true`; \
+	  [ $$n -eq 10 ] || { echo "NG: $$n footnote texts in $$job.pdf, want 10"; exit 1; }; \
+	  fi; \
+	done; \
 	echo "All tests passed ($(TNBVER))"
 
 .PHONY: clean
