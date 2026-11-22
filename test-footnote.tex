@@ -1,0 +1,49 @@
+%% test-footnote.tex
+%% =================
+%% Typesetting test with the tcbpagefootnote package (v1.4 or later):
+%% a breakable box with "page footnote" that has breakable boxes
+%% inside.
+%%
+%%   pdflatex test-footnote.tex   (or xelatex / lualatex)
+%%   platex  test-footnote.tex && dvipdfmx test-footnote
+%%
+%% What is covered:
+%%   * footnotes of the outer box before, between and after the boxes
+%%     inside: each is on the page of its mark;
+%%   * a box inside with "page footnote": its footnotes are page
+%%     footnotes, put where the box ends;
+%%   * a box inside without the key: its footnote is a footnote of the
+%%     box.
+%%
+%% What to check:
+%%   * TNB-RESULT OK, and no error, warning or overfull box;
+%%   * no "% split" (of \tracingpages) in the log;
+%%   * the PDF has the seven footnote texts ("Footnote text <n>.").
+\ifdefined\CLS\else\def\CLS{article}\fi
+\ifdefined\ptexversion\def\CLSOPT{dvipdfmx}\else\def\CLSOPT{}\fi
+\expandafter\documentclass\expandafter[\CLSOPT]{\CLS}
+\usepackage{tcbpagefootnote}
+\usepackage{tcbnestbreak}
+\input{test-common}
+\begin{document}
+\tracingpages=1
+\section*{Breakable boxes inside a box with page footnotes}
+
+\TNBfiller{20}
+
+\begin{tcolorbox}[breakable, page footnote, title=Outer box]
+Outer\footnote{Footnote text 1.}. \TNBfiller{10}
+\begin{tcolorbox}[breakable, page footnote, colback=yellow!20, title=Box 1]
+Inner\footnote{Footnote text 2.}. \TNBfiller{50}
+Inner\footnote{Footnote text 3.}. \TNBfiller{50}
+Inner\footnote{Footnote text 4.}. \TNBfiller{10}
+\end{tcolorbox}
+Outer\footnote{Footnote text 5.}. \TNBfiller{60}
+\begin{tcolorbox}[breakable, colback=green!10, title=Box 2]
+Inner\footnote{Footnote text 6.}. \TNBfiller{80}
+\end{tcolorbox}
+Outer\footnote{Footnote text 7.}.
+\end{tcolorbox}
+
+\TNBexpect{2}{2}
+\end{document}

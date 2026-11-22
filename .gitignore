@@ -1,0 +1,13 @@
+*.aux
+*.log
+*.out
+*.toc
+*.dvi
+*.xdv
+*.synctex.gz
+*.term
+test-*.pdf
+tcbnestbreak.zip
+*~
+.DS_Store
+test-*.txt

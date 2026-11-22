@@ -1,0 +1,71 @@
+%% test-plain.tex
+%% ==============
+%% Typesetting test: documents without a breakable box at the top
+%% level of the content of a breakable box are not changed by
+%% tcbnestbreak.
+%%
+%%   pdflatex test-plain.tex
+%%   pdflatex -jobname=test-plain-off "\def\TNBoff{1}\input test-plain"
+%% With \TNBoff, tcbnestbreak is not loaded.
+%%
+%% What is covered:
+%%   * a breakable box that is broken, with ordinary boxes inside;
+%%   * a breakable box inside an ordinary box and inside a minipage;
+%%   * \tcbox, a box with a lower part, a box in a list.
+%%
+%% What to check:
+%%   * no error;
+%%   * the text of the PDF (pdftotext -layout) is the same with and
+%%     without \TNBoff.
+\ifdefined\CLS\else\def\CLS{article}\fi
+\ifdefined\ptexversion\def\CLSOPT{dvipdfmx}\else\def\CLSOPT{}\fi
+\expandafter\documentclass\expandafter[\CLSOPT]{\CLS}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+\ifdefined\TNBoff\else\usepackage{tcbnestbreak}\fi
+\makeatletter
+\newcommand\TNB@filler{%
+  This is a filler sentence of plain English text for the test. }
+\newcommand\TNBfiller[1]{%
+  \count@=0
+  \loop\advance\count@ by 1 \TNB@filler\ifnum\count@<#1 \repeat\par}
+\makeatother
+\begin{document}
+\section*{Boxes that do not flow}
+
+\TNBfiller{20}
+
+\begin{tcolorbox}[breakable, title=A breakable box]
+\TNBfiller{40}
+\begin{tcolorbox}[title=An ordinary box inside]
+\TNBfiller{6}
+\tcblower
+\TNBfiller{3}
+\end{tcolorbox}
+\TNBfiller{40}
+\begin{itemize}
+\item An item.
+  \begin{tcolorbox}[colback=yellow!10]
+  A box in an item. \tcbox{A tcbox} \TNBfiller{3}
+  \end{tcolorbox}
+\end{itemize}
+\TNBfiller{40}
+\tcblower
+\TNBfiller{40}
+\end{tcolorbox}
+
+\begin{tcolorbox}[title=An ordinary box]
+\begin{tcolorbox}[breakable, title=A breakable box inside]
+\TNBfiller{6}
+\end{tcolorbox}
+\begin{minipage}{.6\linewidth}
+\begin{tcolorbox}[breakable, enhanced]
+In a minipage. \TNBfiller{3}
+\end{tcolorbox}
+\end{minipage}
+\end{tcolorbox}
+
+\begin{tcolorbox}[breakable, enhanced jigsaw, title=A second breakable box]
+\TNBfiller{100}
+\end{tcolorbox}
+\end{document}

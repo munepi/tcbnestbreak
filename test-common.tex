@@ -1,0 +1,165 @@
+%% test-common.tex
+%% ===============
+%% Helpers shared by the test files; \input this file after
+%% \usepackage{tcbnestbreak}.
+%%
+%% \TNBfiller{<n>}
+%%   A paragraph of <n> filler sentences.
+%% \TNBexpect{<boxes>}{<broken>}
+%%   At the end of the document, exactly <boxes> boxes have flowed and
+%%   at least <broken> of them are broken.
+%%
+%% For each box that flows, the height of what flows is written to the
+%% .aux file (hook tcbnestbreak/flow); for each frame that is drawn,
+%% its state, its page and its position in the part of the outer box
+%% are written at shipout (hook tcbnestbreak/frame).  When the .aux
+%% file is read back at \end{document}, every box is checked:
+%%   * its frames are one "unbroken" frame, or a "first" frame, any
+%%     number of "middle" frames and a "last" frame;
+%%   * these are on pages that follow each other (not checked in
+%%     twocolumn);
+%%   * the frames together are as high as what has flowed: the same
+%%     for an unbroken box, and less by at most 40pt for each break
+%%     (the glue that is discarded there).
+%% Logs "TNB-BOX OK: ..." or "TNB-BOX NG: ..." for each box, then
+%% "TNB-RESULT OK (<n> boxes, <m> broken)" or "TNB-RESULT NG".
+%% A single run is enough.
+\makeatletter
+\ExplSyntaxOn
+\bool_new:N \g__tnb_ng_bool
+\int_new:N  \g__tnb_max_int
+\int_new:N  \g__tnb_broken_int
+\tl_new:N   \g__tnb_expect_tl
+\tl_new:N   \l__tnb_states_tl
+\dim_new:N  \l__tnb_sum_dim
+\int_new:N  \l__tnb_last_int
+\bool_new:N \l__tnb_ok_bool
+
+\cs_new_protected:Npn \__tnb_ng:n #1
+  {
+    \bool_gset_true:N \g__tnb_ng_bool
+    \iow_term:e { TNB-BOX~NG:~#1 }
+  }
+
+\AddToHookWithArguments { tcbnestbreak/flow }
+  { \iow_now:Ne \@auxout { \exp_not:N \TNB@h {#1} {#2} } }
+\AddToHookWithArguments { tcbnestbreak/frame }
+  {
+    \iow_shipout_e:Nn \@auxout
+      { \exp_not:N \TNB@f {#1} {#2} { \thepage } {#3} {#4} }
+  }
+
+%% The records are ignored when the .aux file is read at
+%% \begin{document} (they come from the previous run)
+\cs_new_eq:NN \TNB@h \use_none:nn
+\cs_new_eq:NN \TNB@f \use_none:nnnnn
+\cs_new_protected:Npn \__tnb_record_flow:nn #1#2
+  {
+    \int_gset:Nn \g__tnb_max_int { \int_max:nn { \g__tnb_max_int } {#1} }
+    \tl_gset:cn { g__tnb_height_#1_tl } {#2}
+    \seq_gclear_new:c { g__tnb_frames_#1_seq }
+  }
+\cs_new_protected:Npn \__tnb_record_frame:nnnnn #1#2#3#4#5
+  {
+    \seq_if_exist:cTF { g__tnb_frames_#1_seq }
+      { \seq_gput_right:cn { g__tnb_frames_#1_seq } { {#2} {#3} {#4} {#5} } }
+      { \__tnb_ng:n { #1:~frame~of~a~box~that~has~not~flowed } }
+  }
+\AddToHook { enddocument/afterlastpage }
+  {
+    \cs_gset_eq:NN \TNB@h \__tnb_record_flow:nn
+    \cs_gset_eq:NN \TNB@f \__tnb_record_frame:nnnnn
+  }
+\AddToHook { enddocument/afteraux } { \__tnb_check: }
+
+\NewDocumentCommand \TNBexpect { m m }
+  { \tl_gset:Nn \g__tnb_expect_tl { {#1} {#2} } }
+
+\cs_new_protected:Npn \__tnb_check:
+  {
+    \int_step_function:nN { \g__tnb_max_int } \__tnb_check_one:n
+    \tl_if_empty:NTF \g__tnb_expect_tl
+      { \__tnb_ng:n { no~\token_to_str:N \TNBexpect } }
+      { \exp_after:wN \__tnb_check_expect:nn \g__tnb_expect_tl }
+    \bool_if:NTF \g__tnb_ng_bool
+      { \iow_term:n { TNB-RESULT~NG } }
+      {
+        \iow_term:e
+          {
+            TNB-RESULT~OK~(\int_use:N \g__tnb_max_int \c_space_tl boxes,~
+            \int_use:N \g__tnb_broken_int \c_space_tl broken)
+          }
+      }
+  }
+\cs_new_protected:Npn \__tnb_check_expect:nn #1#2
+  {
+    \int_compare:nNnF { \g__tnb_max_int } = {#1}
+      { \__tnb_ng:n { \int_use:N \g__tnb_max_int \c_space_tl boxes,~want~#1 } }
+    \int_compare:nNnT { \g__tnb_broken_int } < {#2}
+      {
+        \__tnb_ng:n
+          { \int_use:N \g__tnb_broken_int \c_space_tl broken,~want~#2~or~more }
+      }
+  }
+
+\cs_new_protected:Npn \__tnb_check_one:n #1
+  {
+    \seq_if_exist:cTF { g__tnb_frames_#1_seq }
+      {
+        \tl_clear:N \l__tnb_states_tl
+        \dim_zero:N \l__tnb_sum_dim
+        \int_zero:N \l__tnb_last_int
+        \bool_set_true:N \l__tnb_ok_bool
+        \seq_map_inline:cn { g__tnb_frames_#1_seq }
+          { \__tnb_check_frame:nnnn ##1 }
+        \regex_match:nVF { \A(?:;unbroken|;first(?:;middle)*;last)\Z }
+          \l__tnb_states_tl
+          { \bool_set_false:N \l__tnb_ok_bool }
+        \int_compare:nNnT { \seq_count:c { g__tnb_frames_#1_seq } } > { 1 }
+          { \int_gincr:N \g__tnb_broken_int }
+        \dim_compare:nNnT { \l__tnb_sum_dim }
+          > { \tl_use:c { g__tnb_height_#1_tl } + 0.1pt }
+          { \bool_set_false:N \l__tnb_ok_bool }
+        \dim_compare:nNnT { \l__tnb_sum_dim }
+          <
+          {
+            \tl_use:c { g__tnb_height_#1_tl } - 0.1pt
+            - 40pt * ( \seq_count:c { g__tnb_frames_#1_seq } - 1 )
+          }
+          { \bool_set_false:N \l__tnb_ok_bool }
+        \bool_if:NTF \l__tnb_ok_bool
+          { \iow_term:e { TNB-BOX~OK:~\__tnb_report:n {#1} } }
+          { \__tnb_ng:n { \__tnb_report:n {#1} } }
+      }
+      { \__tnb_ng:n { #1:~no~record } }
+  }
+\cs_new:Npn \__tnb_report:n #1
+  {
+    #1 \l__tnb_states_tl ,~
+    \dim_use:N \l__tnb_sum_dim \c_space_tl of~
+    \tl_use:c { g__tnb_height_#1_tl }
+  }
+%% #1: state, #2: page, #3: from, #4: to
+\cs_new_protected:Npn \__tnb_check_frame:nnnn #1#2#3#4
+  {
+    \tl_put_right:Nn \l__tnb_states_tl { ; #1 }
+    \dim_add:Nn \l__tnb_sum_dim { #4 - #3 }
+    \legacy_if:nF { @twocolumn }
+      {
+        \int_compare:nNnF { \l__tnb_last_int } = { 0 }
+          {
+            \int_compare:nNnF {#2} = { \l__tnb_last_int + 1 }
+              { \bool_set_false:N \l__tnb_ok_bool }
+          }
+      }
+    \int_set:Nn \l__tnb_last_int {#2}
+  }
+\ExplSyntaxOff
+
+\newcommand\TNB@filler{%
+  This is a filler sentence of plain English text for the test. }
+\newcommand\TNBfiller[1]{%
+  \count@=0
+  \loop\advance\count@ by 1 \TNB@filler\ifnum\count@<#1 \repeat\par}
+\makeatother
+\endinput

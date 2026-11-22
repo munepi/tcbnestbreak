@@ -1,0 +1,129 @@
+%% test-basic.tex
+%% ==============
+%% Typesetting test for every engine: breakable boxes inside breakable
+%% boxes.
+%%
+%%   pdflatex test-basic.tex   (or xelatex / lualatex)
+%%   platex  test-basic.tex && dvipdfmx test-basic
+%%   uplatex -jobname=test-basic "\def\CLS{ujarticle}\input test-basic"
+%% The class is article by default; set \CLS for another one.  With
+%% pTeX the class option dvipdfmx is given.
+%%
+%% What is covered:
+%%   * a breakable box inside a breakable box, broken across several
+%%     pages, with a list and a display inside;
+%%   * a breakable box inside this one, also broken, with an ordinary
+%%     box inside;
+%%   * a small box with a title, a box of the enhanced skin;
+%%   * a box that is the first thing in the outer box and has a text
+%%     color of its own, a box right after it, a box in an item of a
+%%     list, a box defined by \newtcolorbox;
+%%   * a box in the lower part of the outer box;
+%%   * a breakable box in a minipage and in an unbreakable box: these
+%%     do not flow;
+%%   * boxes in an outer box that is not broken, one with a lower part.
+%%
+%% What to check:
+%%   * TNB-RESULT OK, and no error, warning or overfull box;
+%%   * in the PDF, the frames are behind their text and open where the
+%%     outer box is broken.
+\ifdefined\CLS\else\def\CLS{article}\fi
+\ifdefined\ptexversion\def\CLSOPT{dvipdfmx}\else\def\CLSOPT{}\fi
+\expandafter\documentclass\expandafter[\CLSOPT]{\CLS}
+\usepackage{tcbnestbreak}
+\input{test-common}
+\newtcolorbox{note}[2][]{breakable, colback=orange!10,
+  colframe=orange!70!black, title={#2}, #1}
+\begin{document}
+\section*{Breakable boxes inside breakable boxes}
+
+\TNBfiller{20}
+
+\begin{tcolorbox}[breakable, title=Outer box 1]
+\TNBfiller{8}
+\begin{tcolorbox}[breakable, colback=yellow!20, colframe=blue!60!black,
+  title=Box 1]
+Start of box 1. \TNBfiller{20}
+\begin{itemize}
+\item An item. \TNBfiller{6}
+\item Another item with a display
+  \[ a^2 + b^2 = c^2 \]
+  and text after it.
+\end{itemize}
+\begin{tcolorbox}[breakable, colback=red!10, colframe=red!60!black,
+  title=Box 2 in box 1]
+Start of box 2. \TNBfiller{60}
+\begin{tcolorbox}[colback=white, title=An ordinary box in box 2]
+\TNBfiller{4}
+\end{tcolorbox}
+\TNBfiller{60}
+End of box 2.
+\end{tcolorbox}
+\TNBfiller{30}
+End of box 1.
+\end{tcolorbox}
+\TNBfiller{8}
+\begin{tcolorbox}[breakable, colback=green!10, title=Box 3]
+A small box.
+\end{tcolorbox}
+\TNBfiller{30}
+\begin{tcolorbox}[breakable, enhanced, colback=cyan!10,
+  colframe=cyan!50!black]
+Start of box 4, of the enhanced skin. \TNBfiller{120}
+End of box 4.
+\end{tcolorbox}
+\TNBfiller{8}
+\end{tcolorbox}
+
+\begin{tcolorbox}[breakable, title=Outer box 2]
+\begin{tcolorbox}[breakable, colback=yellow!20, coltext=red!70!black]
+Start of box 5, the first thing in the outer box, with red text.
+\TNBfiller{120}
+End of box 5.
+\end{tcolorbox}
+\begin{note}{Box 6, right after box 5}
+\TNBfiller{8}
+\end{note}
+\begin{enumerate}
+\item In a list. \TNBfiller{4}
+\begin{note}[coltext=blue!60!black]{Box 7, in an item}
+Blue text. \TNBfiller{120}
+End of box 7.
+\end{note}
+\item The second item.
+\end{enumerate}
+\begin{minipage}{\linewidth}
+\begin{tcolorbox}[breakable, colback=gray!20,
+  title=In a minipage: an ordinary box]
+This box does not flow.
+\end{tcolorbox}
+\end{minipage}
+\tcblower
+The lower part of the outer box. \TNBfiller{8}
+\begin{note}{Box 8, in the lower part}
+\TNBfiller{120}
+End of box 8.
+\end{note}
+\TNBfiller{8}
+\end{tcolorbox}
+
+\begin{tcolorbox}[title=An unbreakable outer box]
+\begin{tcolorbox}[breakable, colback=gray!20,
+  title=In an unbreakable box: an ordinary box]
+This box does not flow.
+\end{tcolorbox}
+\end{tcolorbox}
+
+\begin{tcolorbox}[breakable, title=Outer box 3 (not broken)]
+\begin{note}{Box 9}
+A small box.
+\end{note}
+\begin{tcolorbox}[breakable, colback=green!10, title=Box 10]
+The upper part.
+\tcblower
+The lower part.
+\end{tcolorbox}
+\end{tcolorbox}
+
+\TNBexpect{10}{6}
+\end{document}
