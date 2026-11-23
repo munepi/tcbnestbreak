@@ -31,9 +31,9 @@ author      = ["Munehiro Yamamoto"]
 license     = ["lppl1.3c"]
 topic       = ["boxing"]
 # home        = "https://..."
-# bugtracker  = ["https://..."]
+bugtracker  = ["https://github.com/munepi/tcbnestbreak/issues"]
 # support     = "https://..."
-# repository  = ["https://..."]
+repository  = ["https://github.com/munepi/tcbnestbreak"]
 # development = "https://..."
 
 archive     = "tcbnestbreak.zip"  # built by "make ctanzip"
