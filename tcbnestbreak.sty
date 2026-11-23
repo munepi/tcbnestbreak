@@ -49,7 +49,8 @@
 %%   \tcb@set@@dimensions, \tcb@sdraw@U, \tcb@sdraw@USL, \tcb@sdraw@L
 %%   (and, for the hooks, \tcb@sdraw@SL),
 %%   \tcb@split@setstate@first (and @middle, @last), \tcb@ch@natural,
-%%   and the lengths \kvtcb@... and \tcb@h@... of a box.
+%%   and the lengths of a box, whose names start with \kvtcb@ and
+%%   \tcb@h@.
 %%
 \RequirePackage{expl3}
 \ProvidesExplPackage{tcbnestbreak}
@@ -148,8 +149,8 @@
 %% 2. The content of a box that flows
 %%    It is typeset as by \tcb@vbox, but in the \hsize of the box
 %%    around it and indented as in a list (\@totalleftmargin,
-%%    \linewidth, \parshape): its lines can be put into the list of
-%%    the box around it as they are.
+%%    \linewidth, \parshape): its lines go into the list of the box
+%%    around it as they are.
 %%    \nobreak keeps the color special at the start from being a
 %%    place where the list can be broken before the first line.
 %%    #1: box, #2: width of the text, #3: color
