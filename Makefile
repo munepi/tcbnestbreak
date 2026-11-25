@@ -16,6 +16,11 @@ TPF ?= ../tcbpagefootnote
 ## are skipped if it is in neither place.
 PXPGFTATE ?= ../pxpgftate
 
+## The footnotenosplit package for the tests with it (test-*nosplit-*),
+## used if the TeX Live does not have it (TeX Live 2025); these tests
+## are skipped if it is in neither place.
+FNS ?= ../footnotenosplit
+
 .PHONY: ctanzip
 ctanzip: tcbnestbreak.zip ## Archive for CTAN upload
 tcbnestbreak.zip: clean $(DOCS)
@@ -48,12 +53,16 @@ tcbnestbreak.pdf: tcbnestbreak.tex tcbnestbreak.sty
 ##    split footnote ("% split" of \tracingpages), the page footnotes
 ##    are on the pages of their marks (TNB-NOTE), and the ten footnote
 ##    texts are in the PDF
+##  * test-*nosplit-*: the same with the footnotenosplit package
+##    (\TNBnosplit of test-common.tex: footnotes are not split), and
+##    no warning of it
 ## A test is "<engine>:<jobname>:<input>".  The output of the engine and
 ## of (x)dvipdfmx is kept in <jobname>.term.
-## $(TPF) and $(PXPGFTATE) are put into TEXINPUTS only for the tests
+## $(TPF), $(PXPGFTATE) and $(FNS) are put into TEXINPUTS only for the tests
 ## that need them: a directory with files of the same job names (as
 ## the tests of tcbpagefootnote have) must not be searched by the
 ## other tests.
+NS := \def\TNBnosplit{1}
 TESTS := \
   pdflatex:test-basic-pdflatex:'\input test-basic' \
   xelatex:test-basic-xelatex:'\input test-basic' \
@@ -65,7 +74,9 @@ TESTS := \
   pdflatex:test-twocolumn-pdflatex:'\PassOptionsToClass{twocolumn}{article}\input test-basic' \
   platex:test-tate-platex:'\input test-tate' \
   uplatex:test-tate-uplatex:'\def\CLS{utarticle}\input test-tate' \
-  lualatex:test-tate-lualatex:'\input test-tate'
+  lualatex:test-tate-lualatex:'\input test-tate' \
+  pdflatex:test-basic-nosplit-pdflatex:'$(NS)\input test-basic' \
+  platex:test-basic-nosplit-platex:'\def\CLS{jarticle}$(NS)\input test-basic'
 
 PLAIN := \
   pdflatex:test-plain-pdflatex:'\input test-plain' \
@@ -79,29 +90,40 @@ FOOTNOTE := \
   platex:test-footnote-platex:'\def\CLS{jarticle}\input test-footnote' \
   uplatex:test-footnote-uplatex:'\def\CLS{ujarticle}\input test-footnote' \
   platex:test-tate-footnote-platex:'\def\TNBfile{test-footnote}\input test-tate' \
-  lualatex:test-tate-footnote-lualatex:'\def\TNBfile{test-footnote}\input test-tate'
+  lualatex:test-tate-footnote-lualatex:'\def\TNBfile{test-footnote}\input test-tate' \
+  pdflatex:test-footnote-nosplit-pdflatex:'$(NS)\input test-footnote' \
+  lualatex:test-footnote-nosplit-lualatex:'$(NS)\input test-footnote' \
+  platex:test-footnote-nosplit-platex:'\def\CLS{jarticle}$(NS)\input test-footnote' \
+  platex:test-tate-footnote-nosplit-platex:'$(NS)\def\TNBfile{test-footnote}\input test-tate'
 
 HASTPF := $(wildcard $(TPF)/tcbpagefootnote.sty)
 
 ## Choose the TeX Live, and find pxpgftate: $$pxp is "kpse" if the TeX
-## Live has it, the directory $(PXPGFTATE) if it is there, else empty
+## Live has it, the directory $(PXPGFTATE) if it is there, else empty;
+## $$fns is the same for footnotenosplit
 SETUP = \
   $(if $(TEXBIN),export PATH="$(TEXBIN):$$PATH";) \
   echo "== `pdflatex --version | head -1`"; \
   if kpsewhich pxpgftate.sty >/dev/null 2>&1; then pxp=kpse; \
   elif [ -f $(PXPGFTATE)/pxpgftate.sty ]; then pxp=$(PXPGFTATE); \
-  else pxp=; fi
+  else pxp=; fi; \
+  if kpsewhich footnotenosplit.sty >/dev/null 2>&1; then fns=kpse; \
+  elif [ -f $(FNS)/footnotenosplit.sty ]; then fns=$(FNS); \
+  else fns=; fi
 
 ## Compile $$in with $$eng as $$job once (+ (x)dvipdfmx), and check
 ## for errors and overfull pages.  A test in tate with pTeX is skipped
-## ($$skip) without pxpgftate.
+## ($$skip) without pxpgftate, a test with footnotenosplit without it.
 RUN = \
   skip=; ti=.; pre=; \
   case $$job in test-*footnote-*) ti="$$ti:$(TPF)"; pre="LUAINPUTS=$(TPF):$$LUAINPUTS";; esac; \
   case $$job in test-tate-*platex) \
-    case "$$pxp" in "") skip=1;; kpse) ;; *) ti="$$ti:$$pxp";; esac;; \
+    case "$$pxp" in "") skip=pxpgftate;; kpse) ;; *) ti="$$ti:$$pxp";; esac;; \
   esac; \
-  if [ -n "$$skip" ]; then echo "   skipped: no pxpgftate.sty"; else \
+  case $$job in test-*nosplit-*) \
+    case "$$fns" in "") skip=footnotenosplit;; kpse) ;; *) ti="$$ti:$$fns";; esac;; \
+  esac; \
+  if [ -n "$$skip" ]; then echo "   skipped: no $$skip.sty"; else \
   rm -f $$job.aux $$job.dvi $$job.xdv; \
   opt=; if [ $$eng = xelatex ]; then opt=-no-pdf; fi; \
   env TEXINPUTS="$$ti:$$TEXINPUTS" $$pre $$eng $$opt -interaction=nonstopmode -jobname=$$job "$$in" >$$job.term 2>&1 || true; \
@@ -109,6 +131,7 @@ RUN = \
   if [ -f $$job.xdv ]; then xdvipdfmx $$job.xdv >>$$job.term 2>&1; fi; \
   if grep -q '^!' $$job.log; then echo "NG: error in $$job.log"; exit 1; fi; \
   if grep 'Overfull .vbox' $$job.log; then echo "NG: overfull page in $$job.log"; exit 1; fi; \
+  if grep 'footnotenosplit Warning' $$job.log; then echo "NG: warning in $$job.log"; exit 1; fi; \
   fi
 
 ## Check the result of test-common.tex in $$job.log

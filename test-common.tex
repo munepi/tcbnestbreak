@@ -12,6 +12,10 @@
 %%   \footnote{<text>} with a check that its text is on the page of
 %%   its mark (both pages are written to the .aux file at shipout).
 %%   Logs "TNB-NOTE OK: ..." or "TNB-NOTE NG: ...".
+%% \TNBnosplit (optional, defined before this file is input)
+%%   The footnotenosplit package is loaded (footnotes are not split:
+%%   \interfootnotelinepenalty=10000), with \footnotetopkern=2pt and an
+%%   \@makefntext that starts with \kern\footnotetopkern.
 %%
 %% For each box that flows, the height of what flows and whether the
 %% box has a lower part are written to the .aux file (hook
@@ -35,6 +39,14 @@
 %% "TNB-RESULT OK (<n> boxes, <m> broken)" or "TNB-RESULT NG".
 %% A single run is enough.
 \makeatletter
+\ifdefined\TNBnosplit
+  \RequirePackage{footnotenosplit}
+  \footnotetopkern=2pt
+  \renewcommand\@makefntext[1]{%
+    \kern\footnotetopkern
+    \parindent 1em\noindent
+    \hb@xt@1.8em{\hss\@makefnmark}#1}
+\fi
 \ExplSyntaxOn
 \bool_new:N \g__tnb_ng_bool
 \int_new:N  \g__tnb_max_int
